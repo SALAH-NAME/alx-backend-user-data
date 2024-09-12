@@ -7,88 +7,78 @@ from os import environ
 import mysql.connector
 
 
-SENSITIVE_FIELDS = ("name", "email", "phone", "ssn", "password")
+PERSONAL_INFO_FIELDS = ("name", "email", "phone", "ssn", "password")
 
 
-def mask_data(fields: List[str], mask: str,
-              log_message: str, delimiter: str) -> str:
-    """mask_data function
-    """
+def obfuscate_log_message(fields: List[str], redaction: str,
+                          log_message: str, separator: str) -> str:
+    """obfuscate_log_message function"""
     for field in fields:
-        log_message = re.sub(f'{field}=.*?{delimiter}',
-                             f'{field}={mask}{delimiter}', log_message)
+        log_message = re.sub(f'{field}=.*?{separator}',
+                             f'{field}={redaction}{separator}', log_message)
     return log_message
 
 
 def create_logger() -> logging.Logger:
-    """create_logger function
-    """
-    logger = logging.getLogger("user_data")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-
+    """create_logger function"""
+    user_logger = logging.getLogger("user_data")
+    user_logger.setLevel(logging.INFO)
+    user_logger.propagate = False
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(MaskingFormatter(list(SENSITIVE_FIELDS)))
-    logger.addHandler(stream_handler)
+    stream_handler.setFormatter(RedactingFormatter(list(PERSONAL_INFO_FIELDS)))
+    user_logger.addHandler(stream_handler)
+    return user_logger
 
-    return logger
 
-
-def connect_db() -> mysql.connector.connection.MySQLConnection:
-    """connect_db function
-    """
-    db_user = environ.get("PERSONAL_DATA_DB_USERNAME", "root")
+def connect_to_db() -> mysql.connector.connection.MySQLConnection:
+    """connect_to_db function"""
+    db_username = environ.get("PERSONAL_DATA_DB_USERNAME", "root")
     db_password = environ.get("PERSONAL_DATA_DB_PASSWORD", "")
     db_host = environ.get("PERSONAL_DATA_DB_HOST", "localhost")
     db_name = environ.get("PERSONAL_DATA_DB_NAME")
 
     connection = mysql.connector.connection.MySQLConnection(
-        user=db_user, password=db_password,
-        host=db_host, database=db_name)
+            user=db_username, password=db_password,
+            host=db_host, database=db_name)
     return connection
 
 
-class MaskingFormatter(logging.Formatter):
-    """MaskingFormatter Class"""
+def main():
+    """main function"""
+    database = connect_to_db()
+    db_cursor = database.cursor()
+    db_cursor.execute("SELECT * FROM users;")
+    column_names = [column[0] for column in db_cursor.description]
 
-    MASK = "***"
-    LOG_FORMAT = ("[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: "
-                  "%(message)s")
-    DELIMITER = ";"
+    user_logger = create_logger()
+
+    for row in db_cursor:
+        formatted_row = ''.join(f'{column}={str(value)}; '
+                                for value, column in zip(row, column_names))
+        user_logger.info(formatted_row.strip())
+
+    db_cursor.close()
+    database.close()
+
+
+class RedactingFormatter(logging.Formatter):
+    """RedactingFormatter function"""
+
+    REDACTION = "***"
+    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
+    SEPARATOR = ";"
 
     def __init__(self, fields: List[str]):
-        """__init__
-        """
-        super(MaskingFormatter, self).__init__(self.LOG_FORMAT)
+        """__init__"""
+        super(RedactingFormatter, self).__init__(self.FORMAT)
         self.fields = fields
 
     def format(self, record: logging.LogRecord) -> str:
-        """format function
-        """
-        record.msg = mask_data(self.fields, self.MASK,
-                               record.getMessage(), self.DELIMITER)
-        return super(MaskingFormatter, self).format(record)
-
-
-def main():
-    """main function
-    """
-    db = connect_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM users;")
-    column_names = [i[0] for i in cursor.description]
-
-    logger = create_logger()
-
-    for row in cursor:
-        log_message = ''.join(f'{column}={str(value)}; '
-                              for value, column in zip(row, column_names))
-        logger.info(log_message.strip())
-
-    cursor.close()
-    db.close()
+        """format function"""
+        record.msg = obfuscate_log_message(self.fields, self.REDACTION,
+                                           record.getMessage(), self.SEPARATOR)
+        return super(RedactingFormatter, self).format(record)
 
 
 if __name__ == '__main__':
-    """__main__"""
     main()
