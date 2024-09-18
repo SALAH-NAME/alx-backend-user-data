@@ -19,10 +19,10 @@ CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 authentication = None
 
 
-if getenv("AUTH_TYPE") == "auth":
-    authentication = Auth()
-elif getenv("AUTH_TYPE") == "basic_auth":
+if getenv("AUTH_TYPE") == "basic_auth":
     authentication = BasicAuth()
+else:
+    authentication = Auth()
 
 
 @app.errorhandler(404)
