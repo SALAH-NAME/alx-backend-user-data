@@ -21,7 +21,7 @@ class BasicAuth(Auth):
         """
         if (auth_header is None or
                 not isinstance(auth_header, str) or
-                not auth_header.startswith("Basic")):
+                not auth_header.startswith("Basic ")):
             return None
 
         return auth_header[6:]
@@ -30,25 +30,23 @@ class BasicAuth(Auth):
             self, base64_auth_header: str) -> str:
         """ decode_base64_authorization_header function
         """
-        b64_header = base64_auth_header
-        if b64_header and isinstance(b64_header, str):
-            try:
-                encoded_bytes = b64_header.encode('utf-8')
-                decoded_bytes = base64.b64decode(encoded_bytes)
-                return decoded_bytes.decode('utf-8')
-            except binascii.Error:
-                return None
+        if base64_auth_header is None or not isinstance(
+                base64_auth_header, str):
+            return None
+        try:
+            decoded_bytes = base64.b64decode(
+                    base64_auth_header.encode('utf-8'))
+            return decoded_bytes.decode('utf-8')
+        except binascii.Error:
+            return None
 
     def extract_user_credentials(
             self, decoded_auth_header: str) -> (str, str):
         """ extract_user_credentials function
         """
-        decoded_str = decoded_auth_header
-        if (decoded_str and isinstance(decoded_str, str) and
-                ":" in decoded_str):
-            credentials = decoded_str.split(":", 1)
-            return (credentials[0], credentials[1])
-        return (None, None)
+        if decoded_auth_header is None or ":" not in decoded_auth_header:
+            return (None, None)
+        return tuple(decoded_auth_header.split(":", 1))
 
     def user_object_from_credentials(
             self, user_email: str, user_pwd: str) -> UserType:
@@ -88,4 +86,4 @@ class BasicAuth(Auth):
                 decoded_auth_header)
         if user_email is None or user_pwd is None:
             return None
-        return {"email": user_email, "password": user_pwd}
+        return self.user_object_from_credentials(user_email, user_pwd)
