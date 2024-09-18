@@ -44,9 +44,12 @@ class BasicAuth(Auth):
             self, decoded_auth_header: str) -> (str, str):
         """ extract_user_credentials function
         """
-        if decoded_auth_header is None or ":" not in decoded_auth_header:
-            return (None, None)
-        return tuple(decoded_auth_header.split(":", 1))
+        decoded_str = decoded_auth_header
+        if (decoded_str and isinstance(decoded_str, str) and
+                ":" in decoded_str):
+            credentials = decoded_str.split(":", 1)
+            return (credentials[0], credentials[1])
+        return (None, None)
 
     def user_object_from_credentials(
             self, user_email: str, user_pwd: str) -> UserType:
