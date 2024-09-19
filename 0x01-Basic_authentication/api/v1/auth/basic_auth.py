@@ -24,17 +24,20 @@ class BasicAuth(Auth):
                 not auth_header.startswith("Basic ")):
             return None
 
-        return authorization_header.split(" ")[1]
+        return auth_header[6:]
 
-    def decode_base64_authorization_header(self, base64_authorization_header: str) -> str:
+    def decode_base64_authorization_header(
+            self, base64_auth_header: str) -> str:
         """ decode_base64_authorization_header function
         """
-        if base64_authorization_header is None:
+        if base64_auth_header is None or not isinstance(
+                base64_auth_header, str):
             return None
         try:
-            decoded = base64.b64decode(base64_authorization_header).decode('utf-8')
-            return decoded
-        except Exception:
+            decoded_bytes = base64.b64decode(
+                    base64_auth_header.encode('utf-8'))
+            return decoded_bytes.decode('utf-8')
+        except binascii.Error:
             return None
 
     def extract_user_credentials(
