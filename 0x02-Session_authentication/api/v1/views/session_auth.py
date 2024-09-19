@@ -10,39 +10,29 @@ from os import getenv
 def login():
     """login function
     """
-    user_email = request.form.get('email')
+    email = request.form.get('email')
+    password = request.form.get('password')
 
-    if not user_email:
+    if not email:
         return jsonify({"error": "email missing"}), 400
-
-    user_password = request.form.get('password')
-
-    if not user_password:
+    if not password:
         return jsonify({"error": "password missing"}), 400
 
-    try:
-        found_users = User.search({'email': user_email})
-    except Exception:
+    users = User.search({"email": email})
+    if not users:
         return jsonify({"error": "no user found for this email"}), 404
 
-    if not found_users:
-        return jsonify({"error": "no user found for this email"}), 404
+    user = users[0]
+    if not user.is_valid_password(password):
+        return jsonify({"error": "wrong password"}), 401
 
-    for user in found_users:
-        if not user.is_valid_password(user_password):
-            return jsonify({"error": "wrong password"}), 401
-
-    from api.v1.app import authentication
-
-    authenticated_user = found_users[0]
-    session_id = authentication.create_session(authenticated_user.id)
-
-    session_name = getenv("SESSION_NAME")
-
-    response = jsonify(authenticated_user.to_json())
+    session_id = auth.create_session(user.id)
+    response = jsonify(user.to_json())
+    session_name = os.getenv('SESSION_NAME')
     response.set_cookie(session_name, session_id)
 
     return response
+
 
 @app_views.route('/auth_session/logout', methods=['DELETE'], strict_slashes=False)
 def logout():
