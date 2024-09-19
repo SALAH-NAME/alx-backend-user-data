@@ -54,13 +54,17 @@ def before_request():
     """Handler before request
     """
     excluded_paths = [
-        '/api/v1/status/', '/api/v1/unauthorized/', '/api/v1/forbidden/']
+        '/api/v1/status/',
+        '/api/v1/unauthorized/',
+        '/api/v1/forbidden/',
+        '/api/v1/auth_session/login/'
+    ]
 
     if authentication and authentication.require_auth(
             request.path, excluded_paths):
-        if not authentication.authorization_header(request):
+        if (not authentication.authorization_header(request) and not
+                authentication.session_cookie(request)):
             abort(401)
-        request.current_user = authentication.current_user(request)
         if not authentication.current_user(request):
             abort(403)
         request.current_user = authentication.current_user(request)
