@@ -60,6 +60,7 @@ def before_request():
             request.path, excluded_paths):
         if not authentication.authorization_header(request):
             abort(401)
+        request.current_user = authentication.current_user(request)
         if not authentication.current_user(request):
             abort(403)
         request.current_user = authentication.current_user(request)
