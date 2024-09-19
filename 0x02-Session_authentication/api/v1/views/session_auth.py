@@ -50,9 +50,9 @@ def login():
 def logout():
     """logout function
     """
-    from api.v1.app import auth
+    from api.v1.app import authentication
 
-    if not auth.destroy_session(request):
+    if not authentication.destroy_session(request):
         abort(404)
 
     return jsonify({}), 200
