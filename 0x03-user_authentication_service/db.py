@@ -30,9 +30,20 @@ class DB:
         return self.__session
 
     def add_user(self, email: str, hashed_password: str) -> User:
-        """add_user class
+        """add_user function
         """
         new_user = User(email=email, hashed_password=hashed_password)
         self._session.add(new_user)
         self._session.commit()
         return new_user
+
+    def find_user_by(self, **kwargs) -> User:
+        """find_user_by function
+        """
+        try:
+            user = self._session.query(User).filter_by(**kwargs).one()
+            return user
+        except NoResultFound:
+            raise NoResultFound("No user found with the given parameters")
+        except InvalidRequestError:
+            raise InvalidRequestError("Invalid query parameters")
