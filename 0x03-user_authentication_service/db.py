@@ -14,7 +14,7 @@ class DB:
     def __init__(self) -> None:
         """__init__
         """
-        self._engine = create_engine("sqlite:///a.db", echo=True,
+        self._engine = create_engine("sqlite:///a.db", echo=False,
                                      connect_args={"check_same_thread": False})
         Base.metadata.drop_all(self._engine)
         Base.metadata.create_all(self._engine)
